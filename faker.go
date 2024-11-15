@@ -4,21 +4,24 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
 )
 
-const (
-	maxUint = ^uint(0)
-	minUint = 0
-	maxInt  = int(maxUint >> 1)
-	minInt  = -maxInt - 1
-)
-
 // Faker is the Generator struct for Faker
 type Faker struct {
-	Generator *rand.Rand
+	Generator GeneratorInterface
+}
+
+// GeneratorInterface presents an Interface that allows us to subsequently control
+// the returned value more accurately when doing tests by allowing us to use a struct that
+// implements these methods to control the returned value. If not in tests, rand.Rand implements
+// these methods and fufills the interface requirements.
+type GeneratorInterface interface {
+	Intn(n int) int
+	Int() int
 }
 
 // RandomDigit returns a fake random digit for Faker
@@ -65,103 +68,160 @@ func (f Faker) RandomNumber(size int) int {
 
 // RandomFloat returns a fake random float number for Faker
 func (f Faker) RandomFloat(maxDecimals, min, max int) float64 {
-	s := fmt.Sprintf("%d.%d", f.IntBetween(min, max-1), f.IntBetween(1, maxDecimals))
-	value, _ := strconv.ParseFloat(s, 32)
-	return value
+	value := float64(f.IntBetween(min, max-1))
+	if maxDecimals < 1 {
+		return value
+	}
+
+	p := int(math.Pow10(maxDecimals))
+	decimals := float64(f.IntBetween(0, p)) / float64(p)
+
+	return value + decimals
 }
 
 // Float returns a fake random float number for Faker
 func (f Faker) Float(maxDecimals, min, max int) float64 {
-	s := fmt.Sprintf("%d.%d", f.IntBetween(min, max-1), f.IntBetween(1, maxDecimals))
-	value, _ := strconv.ParseFloat(s, 32)
-	return value
+	value := float64(f.IntBetween(min, max-1))
+	if maxDecimals < 1 {
+		return value
+	}
+
+	p := int(math.Pow10(maxDecimals))
+	decimals := float64(f.IntBetween(0, p)) / float64(p)
+
+	return value + decimals
 }
 
-// Float32 returns a fake random float64 number for Faker
+// Float32 returns a fake random float32 number for Faker
 func (f Faker) Float32(maxDecimals, min, max int) float32 {
-	s := fmt.Sprintf("%d.%d", f.IntBetween(min, max-1), f.IntBetween(1, maxDecimals))
-	value, _ := strconv.ParseFloat(s, 32)
-	return float32(value)
+	value := float32(f.IntBetween(min, max-1))
+	if maxDecimals < 1 {
+		return value
+	}
+
+	p := int(math.Pow10(maxDecimals))
+	decimals := float32(f.IntBetween(0, p)) / float32(p)
+
+	return value + decimals
 }
 
 // Float64 returns a fake random float64 number for Faker
 func (f Faker) Float64(maxDecimals, min, max int) float64 {
-	s := fmt.Sprintf("%d.%d", f.IntBetween(min, max-1), f.IntBetween(1, maxDecimals))
-	value, _ := strconv.ParseFloat(s, 32)
-	return float64(value)
+	value := float64(f.IntBetween(min, max-1))
+	if maxDecimals < 1 {
+		return value
+	}
+
+	p := int(math.Pow10(maxDecimals))
+	decimals := float64(f.IntBetween(0, p)) / float64(p)
+
+	return value + decimals
 }
 
 // Int returns a fake Int number for Faker
 func (f Faker) Int() int {
-	max := int(^uint(0)>>1) - 1
-	min := 0
+	max := math.MaxInt
+	min := math.MinInt
 	return f.IntBetween(min, max)
 }
 
 // Int8 returns a fake Int8 number for Faker
 func (f Faker) Int8() int8 {
-	return int8(f.Int())
+	return int8(f.IntBetween(0, math.MaxInt8))
 }
 
 // Int16 returns a fake Int16 number for Faker
 func (f Faker) Int16() int16 {
-	return int16(f.Int())
+	return int16(f.IntBetween(0, math.MaxInt16))
 }
 
 // Int32 returns a fake Int32 number for Faker
 func (f Faker) Int32() int32 {
-	return int32(f.Int())
+	return int32(f.IntBetween(0, math.MaxInt32))
 }
 
 // Int64 returns a fake Int64 number for Faker
 func (f Faker) Int64() int64 {
-	return int64(f.Int())
+	return int64(f.IntBetween(0, math.MaxInt64))
 }
 
 // UInt returns a fake UInt number for Faker
 func (f Faker) UInt() uint {
-	maxU := ^uint(0) >> 1
-	max := int(maxU)
-	return uint(f.IntBetween(0, max))
+	return uint(f.IntBetween(0, math.MaxInt))
 }
 
 // UInt8 returns a fake UInt8 number for Faker
 func (f Faker) UInt8() uint8 {
-	return uint8(f.Int())
+	return uint8(f.IntBetween(0, math.MaxUint8))
 }
 
 // UInt16 returns a fake UInt16 number for Faker
 func (f Faker) UInt16() uint16 {
-	return uint16(f.Int())
+	return uint16(f.IntBetween(0, math.MaxUint16))
 }
 
 // UInt32 returns a fake UInt32 number for Faker
 func (f Faker) UInt32() uint32 {
-	return uint32(f.Int())
+	return uint32(f.IntBetween(0, math.MaxUint32))
 }
 
 // UInt64 returns a fake UInt64 number for Faker
 func (f Faker) UInt64() uint64 {
-	return uint64(f.Int())
+	// Using MaxUint32 to avoid overflow
+	return uint64(f.IntBetween(0, math.MaxUint32))
 }
 
 // IntBetween returns a fake Int between a given minimum and maximum values for Faker
 func (f Faker) IntBetween(min, max int) int {
-	diff := max - min
-
-	if diff < 0 {
-		diff = 0
+	if min > max {
+		// Swap values
+		return f.IntBetween(max, min)
 	}
 
+	diff := 0
+	// Edge case when min and max are actual min and max integers,
+	// since we cannot store 2 * math.MaxInt, we instead split the range in:
+	// - 50% chance to return a negative number
+	// - 50% chance to return a positive number
+	if min == math.MinInt64 && max == math.MaxInt64 {
+		if f.Bool() {
+			// negatives
+			max = 0
+			diff = math.MaxInt
+		} else {
+			// positives
+			min = 0
+			diff = math.MaxInt
+		}
+	} else {
+		diff = max - min
+	}
+
+	var value int
 	if diff == 0 {
 		return min
+	} else if diff == math.MaxInt {
+		value = f.Generator.Intn(diff)
+	} else if diff > 0 {
+		value = f.Generator.Intn(diff + 1)
 	}
 
-	if diff == maxInt {
-		return f.Generator.Intn(diff)
-	}
+	return min + value
+}
 
-	return f.Generator.Intn(diff+1) + min
+// Int8Between returns a fake Int8 between a given minimum and maximum values for Faker
+func (f Faker) Int8Between(min, max int8) int8 {
+	return int8(f.IntBetween(int(min), int(max)))
+}
+
+// Int16Between returns a fake Int16 between a given minimum and maximum values for Faker
+func (f Faker) Int16Between(min, max int16) int16 {
+	return int16(f.IntBetween(int(min), int(max)))
+}
+
+// Int32Between returns a fake Int32 between a given minimum and maximum values for Faker
+func (f Faker) Int32Between(min, max int32) int32 {
+	return int32(f.IntBetween(int(min), int(max)))
 }
 
 // Int64Between returns a fake Int64 between a given minimum and maximum values for Faker
@@ -169,9 +229,29 @@ func (f Faker) Int64Between(min, max int64) int64 {
 	return int64(f.IntBetween(int(min), int(max)))
 }
 
-// Int32Between returns a fake Int32 between a given minimum and maximum values for Faker
-func (f Faker) Int32Between(min, max int32) int32 {
-	return int32(f.IntBetween(int(min), int(max)))
+// UIntBetween returns a fake UInt between a given minimum and maximum values for Faker
+func (f Faker) UIntBetween(min, max uint) uint {
+	return uint(f.IntBetween(int(min), int(max)))
+}
+
+// UInt8Between returns a fake UInt8 between a given minimum and maximum values for Faker
+func (f Faker) UInt8Between(min, max uint8) uint8 {
+	return uint8(f.UIntBetween(uint(min), uint(max)))
+}
+
+// UInt16Between returns a fake UInt16 between a given minimum and maximum values for Faker
+func (f Faker) UInt16Between(min, max uint16) uint16 {
+	return uint16(f.UIntBetween(uint(min), uint(max)))
+}
+
+// UInt32Between returns a fake UInt32 between a given minimum and maximum values for Faker
+func (f Faker) UInt32Between(min, max uint32) uint32 {
+	return uint32(f.UIntBetween(uint(min), uint(max)))
+}
+
+// UInt64Between returns a fake UInt64 between a given minimum and maximum values for Faker
+func (f Faker) UInt64Between(min, max uint64) uint64 {
+	return uint64(f.UIntBetween(uint(min), uint(max)))
 }
 
 // Letter returns a fake single letter for Faker
@@ -185,7 +265,8 @@ func (f Faker) RandomLetter() string {
 }
 
 func (f Faker) RandomStringWithLength(l int) string {
-	r := []string{}
+	r := make([]string, 0, l)
+
 	for i := 0; i < l; i++ {
 		r = append(r, f.RandomLetter())
 	}
@@ -204,6 +285,7 @@ func (f Faker) RandomStringMapKey(m map[string]string) string {
 	for k := range m {
 		keys = append(keys, k)
 	}
+	sort.Strings(keys)
 
 	i := f.IntBetween(0, len(keys)-1)
 	return keys[i]
@@ -215,6 +297,7 @@ func (f Faker) RandomStringMapValue(m map[string]string) string {
 	for k := range m {
 		values = append(values, m[k])
 	}
+	sort.Strings(values)
 
 	i := f.IntBetween(0, len(values)-1)
 	return values[i]
@@ -227,7 +310,7 @@ func (f Faker) RandomIntElement(a []int) int {
 }
 
 // ShuffleString returns a fake shuffled string from a given string for Faker
-func (f Faker) ShuffleString(s string) string {
+func (Faker) ShuffleString(s string) string {
 	orig := strings.Split(s, "")
 	dest := make([]string, len(orig))
 
@@ -277,7 +360,6 @@ func (f Faker) Asciify(in string) (out string) {
 		if c == "*" {
 			c = fmt.Sprintf("%c", f.IntBetween(97, 126))
 		}
-
 		out = out + c
 	}
 
@@ -301,7 +383,8 @@ func (f Faker) Boolean() Boolean {
 
 // Map returns a fake Map instance for Faker
 func (f Faker) Map() map[string]interface{} {
-	m := map[string]interface{}{}
+	m := make(map[string]interface{})
+
 	lorem := f.Lorem()
 
 	randWordType := func() string {
@@ -320,7 +403,7 @@ func (f Faker) Map() map[string]interface{} {
 	}
 
 	randSlice := func() []string {
-		var sl []string
+		sl := make([]string, 0, 10)
 		for ii := 0; ii < f.IntBetween(3, 10); ii++ {
 			sl = append(sl, lorem.Word())
 		}
@@ -339,7 +422,8 @@ func (f Faker) Map() map[string]interface{} {
 		case "slice":
 			m[lorem.Word()] = randSlice()
 		case "map":
-			mm := map[string]interface{}{}
+			mm := make(map[string]interface{})
+
 			tt := f.RandomStringElement([]string{"string", "int", "float", "slice"})
 			switch tt {
 			case "string":
@@ -420,12 +504,17 @@ func (f Faker) UUID() UUID {
 
 // Image returns a fake Image instance for Faker
 func (f Faker) Image() Image {
-	return Image{&f}
+	return Image{&f, TempFileCreatorImpl{}, PngEncoderImpl{}}
 }
 
 // File returns a fake File instance for Faker
 func (f Faker) File() File {
-	return File{&f}
+	return File{&f, OSResolverImpl{}}
+}
+
+// Directory returns a fake Directory instance for Faker
+func (f Faker) Directory() Directory {
+	return Directory{&f, OSResolverImpl{}}
 }
 
 // YouTube returns a fake YouTube instance for Faker
@@ -480,12 +569,12 @@ func (f Faker) Emoji() Emoji {
 
 // LoremFlickr returns a fake LoremFlickr instance for Faker
 func (f Faker) LoremFlickr() LoremFlickr {
-	return LoremFlickr{&f}
+	return LoremFlickr{&f, HTTPClientImpl{}, TempFileCreatorImpl{}}
 }
 
 // ProfileImage returns a fake ProfileImage instance for Faker
 func (f Faker) ProfileImage() ProfileImage {
-	return ProfileImage{&f}
+	return ProfileImage{&f, HTTPClientImpl{}, TempFileCreatorImpl{}}
 }
 
 // Genre returns a fake Genre instance for Faker
@@ -518,6 +607,11 @@ func (f Faker) Currency() Currency {
 	return Currency{&f}
 }
 
+// Crypto returns a fake Crypto instance for Faker
+func (f Faker) Crypto() Crypto {
+	return Crypto{&f}
+}
+
 // New returns a new instance of Faker instance with a random seed
 func New() (f Faker) {
 	seed := rand.NewSource(time.Now().Unix())
@@ -530,4 +624,14 @@ func NewWithSeed(src rand.Source) (f Faker) {
 	generator := rand.New(src)
 	f = Faker{Generator: generator}
 	return
+}
+
+// Blood returns a fake Blood instance for Faker
+func (f Faker) Blood() Blood {
+	return Blood{&f}
+}
+
+// Json returns a fake Json instance for Faker
+func (f Faker) Json() Json {
+	return Json{&f}
 }

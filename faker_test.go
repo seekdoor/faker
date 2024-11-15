@@ -2,6 +2,7 @@ package faker
 
 import (
 	"fmt"
+	"math"
 	"math/rand"
 	"reflect"
 	"strings"
@@ -36,7 +37,37 @@ func NotExpect(t *testing.T, notExpected, got interface{}, values ...interface{}
 	}
 }
 
-func F(t *testing.T) Faker {
+func ExpectInInt(t *testing.T, expected int, in []int) {
+	t.Helper()
+	isIn := false
+	for _, v := range in {
+		if expected == v {
+			isIn = true
+			break
+		}
+	}
+
+	if !isIn {
+		t.FailNow()
+	}
+}
+
+func ExpectInString(t *testing.T, expected string, in []string) {
+	t.Helper()
+	isIn := false
+	for _, v := range in {
+		if expected == v {
+			isIn = true
+			break
+		}
+	}
+
+	if !isIn {
+		t.FailNow()
+	}
+}
+
+func F(_ *testing.T) Faker {
 	return NewWithSeed(rand.NewSource(0))
 }
 
@@ -88,16 +119,84 @@ func TestInt(t *testing.T) {
 	Expect(t, fmt.Sprintf("%T", value), "int")
 }
 
-func TestInt64(t *testing.T) {
+func TestInt8(t *testing.T) {
 	f := New()
-	value := f.Int64()
-	Expect(t, fmt.Sprintf("%T", value), "int64")
+	value := f.Int8()
+	Expect(t, fmt.Sprintf("%T", value), "int8")
+}
+
+func TestInt8ReturnsNonZeroValues(t *testing.T) {
+	f := New()
+	nonZero := false
+	for i := 0; i < 100; i++ {
+		value := f.Int8()
+		if value > 0 {
+			nonZero = true
+			break
+		}
+	}
+
+	Expect(t, nonZero, true)
+}
+
+func TestInt16(t *testing.T) {
+	f := New()
+	value := f.Int16()
+	Expect(t, fmt.Sprintf("%T", value), "int16")
+}
+
+func TestInt16ReturnsNonZeroValues(t *testing.T) {
+	f := New()
+	nonZero := false
+	for i := 0; i < 100; i++ {
+		value := f.Int16()
+		if value > 0 {
+			nonZero = true
+			break
+		}
+	}
+
+	Expect(t, nonZero, true)
 }
 
 func TestInt32(t *testing.T) {
 	f := New()
 	value := f.Int32()
 	Expect(t, fmt.Sprintf("%T", value), "int32")
+}
+
+func TestInt32ReturnsNonZeroValues(t *testing.T) {
+	f := New()
+	nonZero := false
+	for i := 0; i < 100; i++ {
+		value := f.Int32()
+		if value > 0 {
+			nonZero = true
+			break
+		}
+	}
+
+	Expect(t, nonZero, true)
+}
+
+func TestInt64(t *testing.T) {
+	f := New()
+	value := f.Int64()
+	Expect(t, fmt.Sprintf("%T", value), "int64")
+}
+
+func TestInt64ReturnsNonZeroValues(t *testing.T) {
+	f := New()
+	nonZero := false
+	for i := 0; i < 100; i++ {
+		value := f.Int64()
+		if value > 0 {
+			nonZero = true
+			break
+		}
+	}
+
+	Expect(t, nonZero, true)
 }
 
 func TestIntBetween(t *testing.T) {
@@ -108,6 +207,13 @@ func TestIntBetween(t *testing.T) {
 	Expect(t, true, value <= 100)
 }
 
+func TestIntBetweenWithSameValues(t *testing.T) {
+	f := New()
+	value := f.IntBetween(1, 1)
+	Expect(t, fmt.Sprintf("%T", value), "int")
+	Expect(t, 1, value)
+}
+
 func TestIntBetweenNegativeValues(t *testing.T) {
 	f := New()
 	value := f.IntBetween(-100, -50)
@@ -116,12 +222,53 @@ func TestIntBetweenNegativeValues(t *testing.T) {
 	Expect(t, true, value <= -50)
 }
 
-func TestIntBetweenWithMaxValues(t *testing.T) {
+func TestIntBetweenWithNegativeMinGeneratesNegativeValues(t *testing.T) {
 	f := New()
-	value := f.IntBetween(minInt, maxInt)
-	Expect(t, fmt.Sprintf("%T", value), "int")
-	Expect(t, true, value >= minInt)
-	Expect(t, true, value <= maxInt)
+	foundNegative := false
+	for i := 0; i < 100; i++ {
+		value := f.IntBetween(-100, 100)
+		if value < 0 {
+			foundNegative = true
+			break
+		}
+	}
+
+	Expect(t, true, foundNegative)
+}
+
+func TestIntBetweenWithMinMaxIntReturnDifferentValues(t *testing.T) {
+	f := New()
+	value1 := f.IntBetween(math.MinInt, math.MaxInt)
+	value2 := f.IntBetween(math.MinInt, math.MaxInt)
+	Expect(t, value1 != value2, true, value1, value2)
+}
+
+func TestIntBetweenWithMinMaxInt8ReturnDifferentValues(t *testing.T) {
+	f := New()
+	value1 := f.IntBetween(math.MinInt8, math.MaxInt8)
+	value2 := f.IntBetween(math.MinInt8, math.MaxInt8)
+	Expect(t, value1 != value2, true, value1, value2)
+}
+
+func TestIntBetweenWithMinMaxInt16ReturnDifferentValues(t *testing.T) {
+	f := New()
+	value1 := f.IntBetween(math.MinInt16, math.MaxInt16)
+	value2 := f.IntBetween(math.MinInt16, math.MaxInt16)
+	Expect(t, value1 != value2, true, value1, value2)
+}
+
+func TestIntBetweenWithMinMaxInt32ReturnDifferentValues(t *testing.T) {
+	f := New()
+	value1 := f.IntBetween(math.MinInt32, math.MaxInt32)
+	value2 := f.IntBetween(math.MinInt32, math.MaxInt32)
+	Expect(t, value1 != value2, true, value1, value2)
+}
+
+func TestIntBetweenWithMinMaxInt64ReturnDifferentValues(t *testing.T) {
+	f := New()
+	value1 := f.IntBetween(math.MinInt64, math.MaxInt64)
+	value2 := f.IntBetween(math.MinInt64, math.MaxInt64)
+	Expect(t, value1 != value2, true, value1, value2)
 }
 
 func TestIntBetweenWithInvalidInterval(t *testing.T) {
@@ -162,10 +309,38 @@ func TestUint(t *testing.T) {
 	Expect(t, fmt.Sprintf("%T", value), "uint")
 }
 
+func TestUIntReturnsNonZeroValues(t *testing.T) {
+	f := New()
+	nonZero := false
+	for i := 0; i < 100; i++ {
+		value := f.UInt()
+		if value > 0 {
+			nonZero = true
+			break
+		}
+	}
+
+	Expect(t, nonZero, true)
+}
+
 func TestUint8(t *testing.T) {
 	f := New()
 	value := f.UInt8()
 	Expect(t, fmt.Sprintf("%T", value), "uint8")
+}
+
+func TestUInt8ReturnsNonZeroValues(t *testing.T) {
+	f := New()
+	nonZero := false
+	for i := 0; i < 100; i++ {
+		value := f.UInt8()
+		if value > 0 {
+			nonZero = true
+			break
+		}
+	}
+
+	Expect(t, nonZero, true)
 }
 
 func TestUint16(t *testing.T) {
@@ -174,10 +349,38 @@ func TestUint16(t *testing.T) {
 	Expect(t, fmt.Sprintf("%T", value), "uint16")
 }
 
+func TestUInt16ReturnsNonZeroValues(t *testing.T) {
+	f := New()
+	nonZero := false
+	for i := 0; i < 100; i++ {
+		value := f.UInt16()
+		if value > 0 {
+			nonZero = true
+			break
+		}
+	}
+
+	Expect(t, nonZero, true)
+}
+
 func TestUint32(t *testing.T) {
 	f := New()
 	value := f.UInt32()
 	Expect(t, fmt.Sprintf("%T", value), "uint32")
+}
+
+func TestUInt32ReturnsNonZeroValues(t *testing.T) {
+	f := New()
+	nonZero := false
+	for i := 0; i < 100; i++ {
+		value := f.UInt32()
+		if value > 0 {
+			nonZero = true
+			break
+		}
+	}
+
+	Expect(t, nonZero, true)
 }
 
 func TestUint64(t *testing.T) {
@@ -186,12 +389,95 @@ func TestUint64(t *testing.T) {
 	Expect(t, fmt.Sprintf("%T", value), "uint64")
 }
 
+func TestUInt64ReturnsNonZeroValues(t *testing.T) {
+	f := New()
+	nonZero := false
+	for i := 0; i < 100; i++ {
+		value := f.UInt64()
+		if value > 0 {
+			nonZero = true
+			break
+		}
+	}
+
+	Expect(t, nonZero, true)
+}
+
+func TestUIntBetween(t *testing.T) {
+	f := New()
+	value := f.UIntBetween(1, 100)
+	Expect(t, fmt.Sprintf("%T", value), "uint")
+	Expect(t, true, value >= 1)
+	Expect(t, true, value <= 100)
+}
+
+func TestUInt8Between(t *testing.T) {
+	f := New()
+	value := f.UInt8Between(1, 100)
+	Expect(t, fmt.Sprintf("%T", value), "uint8")
+	Expect(t, true, value >= 1)
+	Expect(t, true, value <= 100)
+}
+
+func TestUInt16Between(t *testing.T) {
+	f := New()
+	value := f.UInt16Between(1, 100)
+	Expect(t, fmt.Sprintf("%T", value), "uint16")
+	Expect(t, true, value >= 1)
+	Expect(t, true, value <= 100)
+}
+
+func TestUInt32Between(t *testing.T) {
+	f := New()
+	value := f.UInt32Between(1, 100)
+	Expect(t, fmt.Sprintf("%T", value), "uint32")
+	Expect(t, true, value >= 1)
+	Expect(t, true, value <= 100)
+}
+
+func TestUInt64Between(t *testing.T) {
+	f := New()
+	value := f.UInt64Between(1, 100)
+	Expect(t, fmt.Sprintf("%T", value), "uint64")
+	Expect(t, true, value >= 1)
+	Expect(t, true, value <= 100)
+}
+
 func TestRandomFloat(t *testing.T) {
 	f := New()
-	value := f.RandomFloat(1, 1, 100)
+	value := f.RandomFloat(2, 1, 100)
 	Expect(t, fmt.Sprintf("%T", value), "float64")
 	Expect(t, true, value >= 1)
 	Expect(t, true, value <= 100)
+	Expect(t, math.Round(value*100)/100, value)
+}
+
+func TestFloat(t *testing.T) {
+	f := New()
+	value := f.Float(2, 1, 100)
+	Expect(t, fmt.Sprintf("%T", value), "float64")
+	Expect(t, true, value >= 1)
+	Expect(t, true, value <= 100)
+	Expect(t, math.Round(value*100)/100, value)
+}
+
+func TestFloat32(t *testing.T) {
+	f := New()
+	value := f.Float32(2, 1, 100)
+	Expect(t, fmt.Sprintf("%T", value), "float32")
+	Expect(t, true, value >= 1)
+	Expect(t, true, value <= 100)
+	rounded := float32(math.Round(float64(value*100)) / 100)
+	Expect(t, rounded, value)
+}
+
+func TestFloat64(t *testing.T) {
+	f := New()
+	value := f.Float64(2, 1, 100)
+	Expect(t, fmt.Sprintf("%T", value), "float64")
+	Expect(t, true, value >= 1)
+	Expect(t, true, value <= 100)
+	Expect(t, math.Round(value*100)/100, value)
 }
 
 func TestLetter(t *testing.T) {
@@ -297,6 +583,13 @@ func TestMap(t *testing.T) {
 	f := New()
 	mp := f.Map()
 	Expect(t, true, len(mp) > 0)
+}
+
+func TestRandomStringElement(t *testing.T) {
+	f := New()
+	m := []string{"str1", "str2"}
+	randomStr := f.RandomStringElement(m)
+	Expect(t, true, randomStr == "str1" || randomStr == "str2")
 }
 
 func TestRandomStringMapKey(t *testing.T) {

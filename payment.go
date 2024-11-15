@@ -1,15 +1,15 @@
 package faker
 
 import (
-	"strconv"
+	"fmt"
+	"time"
 )
 
-var (
-	cardVendors = []string{
-		"Visa", "Visa", "Visa", "Visa", "Visa",
-		"MasterCard", "MasterCard", "MasterCard", "MasterCard", "MasterCard",
-		"American Express", "Discover Card", "Visa Retired"}
-)
+var cardVendors = []string{
+	"Visa", "Visa", "Visa", "Visa", "Visa",
+	"MasterCard", "MasterCard", "MasterCard", "MasterCard", "MasterCard",
+	"American Express", "Discover Card", "Visa Retired",
+}
 
 // Payment is a faker struct for Payment
 type Payment struct {
@@ -26,14 +26,11 @@ func (p Payment) CreditCardNumber() string {
 	return p.Faker.Numerify("################")
 }
 
-// CreditCardExpirationDateString returns a fake credit card expiration date in string format for Payment
+// CreditCardExpirationDateString returns a fake credit card expiration date in string format (i.e. mm/yy) for Payment
 func (p Payment) CreditCardExpirationDateString() string {
-	day := strconv.Itoa(p.Faker.IntBetween(0, 30))
-	if len(day) == 1 {
-		day = "0" + day
-	}
+	month := p.Faker.IntBetween(1, 12)
+	currentYear := time.Now().Year()
+	year := p.Faker.IntBetween(currentYear, currentYear+3)
 
-	month := strconv.Itoa(p.Faker.IntBetween(12, 30))
-
-	return day + "/" + month
+	return fmt.Sprintf("%02d/%02d", month, year%100)
 }
